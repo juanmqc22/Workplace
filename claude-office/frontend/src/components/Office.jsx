@@ -1,42 +1,90 @@
 import React from 'react'
 import Room from './Room.jsx'
+import Creature from './Creature.jsx'
 
-const CANVAS_W = 1100, CANVAS_H = 780
-const ROOM_LAYOUT = {
-  hub:       { x: 50,  y: 20,  w: 1000, h: 200 },
-  planning:  { x: 50,  y: 240, w: 320,  h: 240 },
-  prototype: { x: 390, y: 240, w: 340,  h: 240 },
-  dev:       { x: 50,  y: 500, w: 1000, h: 260 }
-}
+const SKIP_ROOMS = new Set(['hub'])
 
-export default function Office({ state, onAgentClick }) {
+export default function Office({ state, onAgentClick, clock }) {
   const { agents, rooms } = state
+
   function getRoomAgents(roomId) {
-    const roomData = rooms[roomId]
-    if (!roomData) return []
-    return (roomData.agents || []).map(id => agents[id]).filter(Boolean)
+    const room = rooms[roomId]
+    if (!room) return []
+    return (room.agents || []).map(sid => agents[sid]).filter(Boolean)
   }
+
+  const hubAgents = getRoomAgents('hub')
+  const metaAgent = hubAgents[0] || null
+
+  const dynamicRooms = Object.keys(rooms).filter(id => !SKIP_ROOMS.has(id))
+  const hasRooms = dynamicRooms.length > 0
+
   return (
-    <div className="office-canvas">
-      <svg width={CANVAS_W} height={CANVAS_H} viewBox={`0 0 ${CANVAS_W} ${CANVAS_H}`}>
-        <rect width={CANVAS_W} height={CANVAS_H} fill="#0a0a15" />
-        <defs>
-          <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse">
-            <path d="M 48 0 L 0 0 0 48" fill="none" stroke="#1a1a2e" strokeWidth="0.5" />
-          </pattern>
-        </defs>
-        <rect width={CANVAS_W} height={CANVAS_H} fill="url(#grid)" opacity="0.4" />
-        {Object.entries(ROOM_LAYOUT).map(([roomId, layout]) => (
-          <Room key={roomId} roomId={roomId} agents={getRoomAgents(roomId)} x={layout.x} y={layout.y} width={layout.w} height={layout.h} onAgentClick={onAgentClick} />
-        ))}
-        <rect x={150} y={220} width={40} height={20} fill="#111122" stroke="#223" strokeWidth="1" />
-        <rect x={500} y={220} width={40} height={20} fill="#111122" stroke="#223" strokeWidth="1" />
-        <rect x={150} y={480} width={40} height={20} fill="#111122" stroke="#223" strokeWidth="1" />
-        <rect x={500} y={480} width={40} height={20} fill="#111122" stroke="#223" strokeWidth="1" />
-        <text x={CANVAS_W/2} y={CANVAS_H-10} textAnchor="middle" fill="#334" fontSize="9" fontFamily="Courier New, monospace">
-          CLAUDE OFFICE v0.1 — {Object.keys(agents).length} AGENTS ACTIVE
-        </text>
-      </svg>
+    <div className="office-wrap">
+      <header className="office-header">
+        <div className="header-brand">
+          <h1>The Agent Office</h1>
+          <div className="sub">workflow monitor · {clock}</div>
+        </div>
+        {hasRooms && (
+          <div className="room-count">
+            {dynamicRooms.length} room{dynamicRooms.length !== 1 ? 's' : ''} · {Object.keys(agents).length} agent{Object.keys(agents).length !== 1 ? 's' : ''}
+          </div>
+        )}
+      </header>
+
+      <main className="office-floor">
+        {hasRooms ? (
+          <div className="rooms-grid">
+            {dynamicRooms.map(roomId => (
+              <Room
+                key={roomId}
+                roomId={roomId}
+                agents={getRoomAgents(roomId)}
+                onAgentClick={onAgentClick}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="floor-empty">
+            <p className="floor-hint">The office is empty — talk to your meta-agent to get started</p>
+          </div>
+        )}
+
+        {/* Meta-agent hub */}
+        <div className={`hub-row ${!hasRooms ? 'hub-row--centered' : ''}`}>
+          {metaAgent ? (
+            <div
+              className={`agent-slot meta-agent ${metaAgent.status === 'active' ? 'agent-active' : metaAgent.status === 'waiting' ? 'agent-waiting' : ''}`}
+              onClick={() => onAgentClick(metaAgent)}
+            >
+              {metaAgent.lastAction && (
+                <div className="task-card">
+                  <span className={`task-dot ${metaAgent.status}`} />
+                  {metaAgent.lastAction.slice(0, 60)}
+                </div>
+              )}
+              <Creature type="hub" status={metaAgent.status} size={hasRooms ? 62 : 80} />
+              <div className="agent-badge">
+                <span>{metaAgent.name || 'Meta'}</span>
+                <span className="agent-role">· Orchestrator</span>
+              </div>
+            </div>
+          ) : (
+            <div className="agent-slot meta-agent">
+              <Creature type="hub" status="idle" size={hasRooms ? 62 : 80} />
+              <div className="agent-badge">
+                <span>Meta</span>
+                <span className="agent-role">· Orchestrator</span>
+              </div>
+            </div>
+          )}
+
+          <div className="hub-footer">
+            Click any agent for details · the meta-agent coordinates your office
+          </div>
+        </div>
+      </main>
     </div>
   )
 }
