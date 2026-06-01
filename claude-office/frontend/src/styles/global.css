@@ -1,0 +1,34 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --color-bg: #0d0d1a; --color-floor: #16213e; --color-wall: #0f3460;
+  --color-desk: #3d2b5e; --color-hub: #1a1535; --color-planning: #1a2e14;
+  --color-prototype: #0d1f2d; --color-dev: #2e1414;
+  --color-active: #00ff88; --color-idle: #556677; --color-waiting: #ffaa00;
+  --color-text: #c8d8e8; --color-text-dim: #667788; --color-panel-bg: #0a0a18;
+  --font-pixel: 'Courier New', 'Lucida Console', monospace;
+}
+html, body { width: 100%; height: 100%; background: var(--color-bg); color: var(--color-text); font-family: var(--font-pixel); image-rendering: pixelated; overflow: hidden; }
+#root { width: 100vw; height: 100vh; display: flex; flex-direction: column; }
+@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+.creature-active { animation: pulse 1.5s ease-in-out infinite; }
+.creature-waiting { animation: bounce 1s ease-in-out infinite; }
+.creature-idle { opacity: 0.75; }
+.side-panel { position: fixed; top: 0; right: 0; width: 320px; height: calc(100vh - 60px); background: var(--color-panel-bg); border-left: 2px solid var(--color-wall); padding: 16px; overflow-y: auto; z-index: 100; display: flex; flex-direction: column; gap: 12px; }
+.side-panel h2 { font-size: 14px; color: var(--color-active); text-transform: uppercase; letter-spacing: 2px; }
+.side-panel .log-entry { font-size: 10px; color: var(--color-text-dim); border-left: 2px solid var(--color-wall); padding-left: 8px; margin: 4px 0; }
+.side-panel .log-entry.user { border-left-color: var(--color-waiting); }
+.side-panel .log-entry.assistant { border-left-color: var(--color-active); }
+.side-panel .close-btn { background: transparent; border: 1px solid var(--color-wall); color: var(--color-text); cursor: pointer; font-family: var(--font-pixel); font-size: 11px; padding: 4px 8px; align-self: flex-end; }
+.side-panel .close-btn:hover { background: var(--color-wall); }
+.command-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 52px; background: #080810; border-top: 2px solid var(--color-wall); display: flex; align-items: center; padding: 0 16px; gap: 10px; z-index: 100; }
+.command-bar input { flex: 1; background: #111122; border: 1px solid var(--color-wall); color: var(--color-text); font-family: var(--font-pixel); font-size: 12px; padding: 6px 10px; outline: none; }
+.command-bar input:focus { border-color: var(--color-active); }
+.command-bar button { background: var(--color-wall); border: 1px solid var(--color-active); color: var(--color-active); font-family: var(--font-pixel); font-size: 11px; padding: 6px 14px; cursor: pointer; text-transform: uppercase; }
+.command-bar button:hover { background: var(--color-active); color: #000; }
+.command-bar .meta-tag { font-size: 10px; color: #aa88ff; text-transform: uppercase; letter-spacing: 1px; }
+.conn-status { position: fixed; top: 10px; right: 10px; font-size: 10px; z-index: 200; display: flex; align-items: center; gap: 5px; }
+.conn-dot { width: 8px; height: 8px; border-radius: 50%; }
+.conn-dot.connected { background: var(--color-active); }
+.conn-dot.disconnected { background: #ff4444; }
+.office-canvas { flex: 1; overflow: auto; padding: 20px; padding-bottom: 60px; display: flex; align-items: flex-start; justify-content: center; }
