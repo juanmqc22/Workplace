@@ -12,28 +12,6 @@ export function parseLogFile(filePath) {
   } catch { return [] }
 }
 
-export function determineAgentType(filePath, events) {
-  const path = filePath.toLowerCase()
-  if (path.includes('meta') || path.includes('hub')) return 'meta'
-  if (path.includes('planning') || path.includes('planner')) return 'planning'
-  if (path.includes('prototype') || path.includes('proto')) return 'prototype'
-  for (const e of events) {
-    if (e.cwd) {
-      const cwd = e.cwd.toLowerCase()
-      if (cwd.includes('planning') || cwd.includes('planner')) return 'planning'
-      if (cwd.includes('proto')) return 'prototype'
-    }
-  }
-  if (path.includes('subagent')) return 'dev'
-  return 'dev'
-}
-
-export function extractAgentName(filePath) {
-  const match = filePath.match(/agent-(?:local-)?([a-z]+)-[0-9a-f]+/i)
-  if (match) return match[1]
-  return basename(filePath, '.jsonl').slice(0, 8)
-}
-
 export function getLastAction(events) {
   for (let i = events.length - 1; i >= 0; i--) {
     const e = events[i]
@@ -51,10 +29,6 @@ export function getLastAction(events) {
 }
 
 export function extractAgentInfo(events, filePath) {
-  const type = determineAgentType(filePath, events)
-  const roomMap = { meta: 'hub', planning: 'planning', prototype: 'prototype', dev: 'dev' }
-  const name = extractAgentName(filePath)
-  const lastAction = getLastAction(events)
   let cwd = null, gitBranch = null, sessionId = null
   for (const e of events) {
     if (e.sessionId && !sessionId) sessionId = e.sessionId
@@ -62,11 +36,16 @@ export function extractAgentInfo(events, filePath) {
     if (e.gitBranch && !gitBranch) gitBranch = e.gitBranch
   }
   const lastEvent = events[events.length - 1]
-  const isRecent = lastEvent?.timestamp && (Date.now() - new Date(lastEvent.timestamp).getTime()) < 5 * 60 * 1000
+  const isRecent = lastEvent?.timestamp &&
+    (Date.now() - new Date(lastEvent.timestamp).getTime()) < 5 * 60 * 1000
   return {
     sessionId: sessionId || basename(filePath, '.jsonl'),
-    name, type, room: roomMap[type] || 'dev',
+    name: basename(filePath, '.jsonl').slice(0, 8),
+    type: 'agent',
+    room: 'unassigned',
     status: isRecent ? 'active' : 'idle',
-    lastAction, cwd, gitBranch
+    lastAction: getLastAction(events),
+    cwd,
+    gitBranch
   }
 }

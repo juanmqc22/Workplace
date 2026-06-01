@@ -1,7 +1,7 @@
 import express from 'express'
 import { WebSocketServer } from 'ws'
 import { createServer } from 'http'
-import { loadState, getState } from './state.js'
+import { loadState, getState, createRoom, assignAgent, deleteRoom } from './state.js'
 import { startWatcher } from './watcher.js'
 
 const app = express()
@@ -9,6 +9,40 @@ app.use(express.json())
 
 app.get('/api/state', (req, res) => {
   res.json(getState())
+})
+
+app.post('/api/rooms', (req, res) => {
+  const { name } = req.body
+  if (!name || typeof name !== 'string' || !name.trim())
+    return res.status(400).json({ error: 'name is required' })
+  const safe = name.trim().toLowerCase().replace(/\s+/g, '-')
+  if (safe === 'hub' || safe === 'unassigned')
+    return res.status(400).json({ error: `cannot create protected room: ${safe}` })
+  createRoom(safe)
+  broadcast({ type: 'state-update', state: getState() })
+  res.json({ ok: true, room: safe })
+})
+
+app.delete('/api/rooms/:roomId', (req, res) => {
+  try {
+    deleteRoom(req.params.roomId)
+    broadcast({ type: 'state-update', state: getState() })
+    res.json({ ok: true })
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
+})
+
+app.patch('/api/agents/:sessionId', (req, res) => {
+  const { sessionId } = req.params
+  const { room } = req.body
+  if (!getState().agents[sessionId])
+    return res.status(404).json({ error: 'agent not found' })
+  if (!room || typeof room !== 'string')
+    return res.status(400).json({ error: 'room is required' })
+  assignAgent(sessionId, room.trim().toLowerCase())
+  broadcast({ type: 'state-update', state: getState() })
+  res.json({ ok: true })
 })
 
 app.post('/api/command', (req, res) => {
