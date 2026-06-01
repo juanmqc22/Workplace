@@ -1,8 +1,9 @@
 import React from 'react'
 import Room from './Room.jsx'
+import Desk from './Desk.jsx'
 import Creature from './Creature.jsx'
 
-const SKIP_ROOMS = new Set(['hub'])
+const SKIP_ROOMS = new Set(['hub', 'unassigned'])
 
 export default function Office({ state, onAgentClick, clock }) {
   const { agents, rooms } = state
@@ -15,7 +16,7 @@ export default function Office({ state, onAgentClick, clock }) {
 
   const hubAgents = getRoomAgents('hub')
   const metaAgent = hubAgents[0] || null
-
+  const unassignedAgents = getRoomAgents('unassigned')
   const dynamicRooms = Object.keys(rooms).filter(id => !SKIP_ROOMS.has(id))
   const hasRooms = dynamicRooms.length > 0
 
@@ -34,15 +35,11 @@ export default function Office({ state, onAgentClick, clock }) {
       </header>
 
       <main className="office-floor">
+        {/* Named rooms grid */}
         {hasRooms ? (
           <div className="rooms-grid">
             {dynamicRooms.map(roomId => (
-              <Room
-                key={roomId}
-                roomId={roomId}
-                agents={getRoomAgents(roomId)}
-                onAgentClick={onAgentClick}
-              />
+              <Room key={roomId} roomId={roomId} agents={getRoomAgents(roomId)} onAgentClick={onAgentClick} />
             ))}
           </div>
         ) : (
@@ -51,8 +48,24 @@ export default function Office({ state, onAgentClick, clock }) {
           </div>
         )}
 
-        {/* Meta-agent hub */}
-        <div className={`hub-row ${!hasRooms ? 'hub-row--centered' : ''}`}>
+        {/* Unassigned inbox — only shown when there are agents waiting */}
+        {unassignedAgents.length > 0 && (
+          <div className="inbox-row">
+            <div className="inbox-label">
+              <span className="inbox-icon">📥</span>
+              New sessions
+              <span className="inbox-count">{unassignedAgents.length}</span>
+            </div>
+            <div className="inbox-agents">
+              {unassignedAgents.map(agent => (
+                <Desk key={agent.sessionId} agent={agent} onClick={() => onAgentClick(agent)} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Hub — meta-agent */}
+        <div className={`hub-row ${!hasRooms && unassignedAgents.length === 0 ? 'hub-row--centered' : ''}`}>
           {metaAgent ? (
             <div
               className={`agent-slot meta-agent ${metaAgent.status === 'active' ? 'agent-active' : metaAgent.status === 'waiting' ? 'agent-waiting' : ''}`}
